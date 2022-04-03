@@ -13,7 +13,7 @@ fi
 
 cp -r "./dist/$EXTENSION_NAME" "$EXT_DIR/$EXTENSION_NAME"
 
-bash "./$EXTENSION_NAME/check-dependencies.sh"
+bash "./$EXTENSION_NAME/scripts/check-dependencies.sh"
 
 if [ "$?" = 0 ]; then
     echo "Successfully installed extension directory"
