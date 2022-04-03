@@ -16,7 +16,7 @@ cd wireguard-ui
 
 **Note:** You have to have ```zenity```, ```notify-send```, ```gedit```, and obviously ```wireguard``` installed.
 
-**Ubuntu:** ```sudo apt install zenity notify-send wireguard```
+**Ubuntu:** ```sudo apt install zenity notify-send gedit wireguard```
 
 *I haven't tested it on other distro's, if anyone does please let me know!*
 
