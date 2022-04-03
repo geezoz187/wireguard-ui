@@ -25,6 +25,7 @@ cd wireguard-ui
 - [x] Switching betwean interfaces through the gnome tray icon
 - [x] Importing config Files
 - [x] Quick editor access for editing config files
+- [x] Quickly shutdown & but up a wireguard interface with single click
 
 ## ToDo
 
@@ -43,5 +44,3 @@ cd wireguard-ui
 - [ ] Make Show IP in TrayIcon optional
 - [ ] Make Show Ping in TrayIcon optional
 - [ ] Changing the default Wireguard interface on startup
-- [ ] Change where to save the interface list (doesn't contain any sensitive data just the interface names)
-- [ ] Adding a log window to check the wireguard logs (similar to the windows client)

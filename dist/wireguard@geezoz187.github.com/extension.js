@@ -99,8 +99,8 @@ function logToFile(txt) {
 }
 
 function updateInterfaces() {
-    execInterfaceScript(["/bin/bash", "-c", `${Me.dir.get_path()}/scripts/update-interface-list.sh ${Me.dir.get_path()}/interfaces`]);
-    return execShell(`bash -c "cat ${Me.dir.get_path()}/interfaces | sed -e 's/.conf$//'"`); //
+    execInterfaceScript(["/bin/bash", "-c", `${Me.dir.get_path()}/scripts/update-interface-list.sh ~/.wg-interfaces`]);
+    return execShell(`bash -c "cat ~/.wg-interfaces | sed -e 's/.conf$//'"`); 
 }
 
 /**
@@ -115,29 +115,32 @@ const interfaceList = {};
 function switchWireguardInterfaceTo(wgInterface) {
     let command_chain = "";
     
-    if(wgInterface !== null) {
-        logToFile(`Enabling interface ${wgInterface}`);
+    if(wgInterface !== null && wgInterface !== "<none>") {
         command_chain += `${wgInterface} `;
     } else {
         command_chain += `$ ` // The dollar will be seen as ignore the first argument
     }
     
     for(let inter of Object.keys(interfaceList)) {
-        if(interfaceList[inter] && inter !== wgInterface) {
-            logToFile(`Disabling interface ${inter}`);
+        if(interfaceList[inter] && inter !== wgInterface && interfaceList[inter] !== "<none>") {
             command_chain += `${inter} `
         } else {
             //wgInterface == null essentially means that the application wants to 
             //entirely disable wireguard if we wouldn't check here we would disable all interfaces except the active one....
-            if(wgInterface !== null)
-                logToFile(`Ignoring interface ${inter}`);
-            else 
-                command_chain += `${inter} `;
+            if(wgInterface === null)
+            {
+                //TODO: I think this one is unecessary
+                if(wgInterface !== "<none>"){
+                    command_chain += `${inter} `;
+                }
+            }
         }
     }
 
+    logToFile(`switching interface with command chain ${command_chain}`);
     execInterfaceScript(["/bin/bash", "-c", `pkexec ${Me.dir.get_path()}/scripts/switch-wg-interface.sh ${command_chain}`]);
-    notify(`Wireguard interface switched to '${wgInterface}'`);
+    if(wgInterface)
+        notify(`Wireguard interface switched to '${wgInterface}'`);
 }
 
 function openEditorForInterface(wgInterface) {
@@ -153,12 +156,13 @@ function makeInterfaceMenuItem(interfaceName) {
 
     // This is out main "onclick" event for the individual interface
     item.connect('activate', () => { 
-        notify(`Switching intergace to '${interfaceName}'`);
+        notify(`Switching interface to '${interfaceName}'`);
         switchWireguardInterfaceTo(interfaceName);
     });
     item.add_child(new St.Label({
         x_expand: true,
-        text: `Interface: ${interfaceName}`,
+        text: `${interfaceName}`,
+        style_class: "extension-wg-interface-text"
     }));
     let hbox = new St.BoxLayout({ x_align: St.Align.START });
 
@@ -172,10 +176,47 @@ function makeInterfaceMenuItem(interfaceName) {
         hbox.add_child(btn);
     }
 
-    addButtonItem('emblem-system-symbolic', () => { openEditorForInterface(interfaceName); });
+    addButtonItem('emblem-system-symbolic', () => { 
+        openEditorForInterface(interfaceName); 
+    });
+
+    addButtonItem('edit-delete-symbolic', () => {
+        //TODO#1: Delete interface 
+    });
     item.add_child(hbox);
     return item;
 }
+
+function makeNullInterfaceMenuItem() {
+    let item = new PopupMenu.PopupBaseMenuItem();
+
+    //Search through all interfaces if none are enabled this one is
+    let found = false;
+    for(let key of Object.keys(interfaceList)) {
+        if(interfaceList[key]) { found = true; break; }
+    }
+
+    // Sets the dot to indicate that it is enabled
+    item.setOrnament(!found ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
+
+    // This is out main "onclick" event for the individual interface
+    item.connect('activate', () => { 
+        notify(`Disabling wireguard...`);
+        switchWireguardInterfaceTo(null);
+    });
+
+    let hbox = new St.BoxLayout({ x_align: St.Align.MIDDLE });
+    hbox.add_child(new St.Label({
+        //x_expand: true,
+        x_align: St.Align.MIDDLE,
+        text: `<none>`,
+        style_class: "extension-wg-interface-text-none"
+    }));
+    item.add_child(hbox);
+    return item;
+}
+
+
 
 /**
  * Checks if a given interface name is currently active
@@ -193,39 +234,98 @@ function checkIfInterfaceIsActive(interfaceName) {
     return true;
 }
 
-function getIPAddr() {
-    let ip = JSON.parse(execShell(`bash -c "curl 'https://api64.ipify.org?format=json'"`));
-    if(ip && ip.ip) {
-        return ip.ip;
-    } else {
-        return "<not connected>";
-    }
-}
-
 var MainIndicator = class MainIndicator extends PanelMenu.Button {
+    _buildMenuStatusbar() {
+        let item = new PopupMenu.PopupBaseMenuItem({ style_class: 'extension-list-item', hover: false });
+        let hbox = new St.BoxLayout({ x_align: St.Align.START, x_expand: true });
+        let addButtonItem = (icon, func, extra_style) => {
+            let btn = new St.Button({
+                hover: true,
+                x_expand: true,
+                style_class: 'extension-list-setting-button extension-list-button',
+                child: new St.Icon({ icon_name: icon, style_class: !extra_style ? 'popup-menu-icon' : 'popup-menu-icon ' + extra_style}),
+            });
+            btn.connect('clicked', func);
+            hbox.add_child(btn);
+        }
+
+        // - Import Config
+        addButtonItem('list-add-symbolic', () => { 
+            this.importConfig();
+        });
+        
+        // - Refresh Wireguard Service list
+        addButtonItem('view-refresh-symbolic',  () => { 
+            this.refreshInterfaceList();
+        });
+
+        
+        item.add_child(hbox);
+        return item;
+    }
+
+    // Based on https://github.com/tuberry/extension-list
+    _buildMenuToolbar() {
+        let item = new PopupMenu.PopupBaseMenuItem({ style_class: 'extension-list-item', hover: false });
+        let hbox = new St.BoxLayout({ x_align: St.Align.START, x_expand: true });
+        let addButtonItem = (icon, func) => {
+            let btn = new St.Button({
+                hover: true,
+                x_expand: true,
+                style_class: 'extension-list-setting-button extension-list-button',
+                child: new St.Icon({ icon_name: icon, style_class: 'popup-menu-icon'}),
+            });
+            btn.connect('clicked', func);
+            hbox.add_child(btn);
+        }
+
+        // - Settings
+        addButtonItem('applications-engineering-symbolic', () => {
+
+        });
+
+        // - About Page
+        addButtonItem('dialog-question-symbolic', () => { 
+
+        });
+
+        
+        item.add_child(hbox);
+        return item;
+    }
 
     _buildMenu() {
         var interfaces = updateInterfaces();
         var interfaceArray = interfaces.split("\n");
 
-        this.menu.addMenuItem(new PopupMenu.PopupMenuItem(`IP: ${getIPAddr()}`));
+        this.menu.addMenuItem(this._buildMenuStatusbar());
 
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
+        interfaceArray.push(null);
+
         // Adding out wireguard interfaces as menu items
-        logToFile("Printing array elements now...");
         for(var inter of interfaceArray) {
-            if(inter && inter !== "") {
-                interfaceList[inter] = checkIfInterfaceIsActive(inter);
-                this.menu.addMenuItem(makeInterfaceMenuItem(inter));
+            if(inter === null) {
+                interfaceList[inter] = false;
+                this.menu.addMenuItem(makeNullInterfaceMenuItem());
+            } else { 
+                if(inter && inter !== "") {
+                    interfaceList[inter] = checkIfInterfaceIsActive(inter);
+                    this.menu.addMenuItem(makeInterfaceMenuItem(inter));
+                }
             }
         }
 
+        
+
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
         //Our control buttons. (TODO: we could replace those with icons)
-        this.menu.addAction('Import interface', this.importInterface, null);
-        this.menu.addAction('Disable wireguard', this.disableWireguard, null);
-        this.menu.addAction('Force refresh interfaces', this.refreshInterfaces, null);
+        //this.menu.addAction('Import interface', this.importConfig, null);
+        //this.menu.addAction('Disable wireguard', this.shutdownAllInterfaces, null);
+        //this.menu.addAction('Force refresh interfaces', this.refreshInterfaceList, null);
+
+        this.menu.addMenuItem(this._buildMenuToolbar());
     }
 
     _init() {
@@ -249,19 +349,18 @@ var MainIndicator = class MainIndicator extends PanelMenu.Button {
     }
 
     createNewInterface() {
-
         this.menu.removeAll();
         this._buildMenu();
     }
 
-    importInterface() {
+    importConfig() {
         importConfigDialog();
         this.menu.removeAll();
         this._buildMenu();
     }
 
-    refreshInterfaces() {
-        execShell(`bash -c "rm -f ${Me.dir.get_path()}/interfaces"`);
+    refreshInterfaceList() {
+        execShell(`bash -c "rm -f ~/.wg-interfaces"`);
         notify("Interface list has been refreshed");
 
         this.menu.removeAll();
@@ -269,7 +368,7 @@ var MainIndicator = class MainIndicator extends PanelMenu.Button {
     }
 
     // Disables wireguard interfaces entirely
-    disableWireguard() {
+    shutdownAllInterfaces() {
         switchWireguardInterfaceTo(null);
         for(let inter of Object.keys(interfaceList)) {
             interfaceList[inter] = false;
@@ -277,6 +376,21 @@ var MainIndicator = class MainIndicator extends PanelMenu.Button {
         notify(`Disabling VPN`);
         this.menu.removeAll();
         this._buildMenu();
+    }
+
+    restartWireguard() {
+        let activeInterface = null;
+        
+        for(let inter of Object.keys(interfaceList)) {
+            if(interfaceList[inter]) {
+                activeInterface = inter;
+                break;
+            }
+        }
+
+        switchWireguardInterfaceTo(null);
+        notify("Wireguard interfaces were shutdown.");
+        switchWireguardInterfaceTo(activeInterface);
     }
 }
 

@@ -2,6 +2,7 @@
 
 for i in "${@:2}"
 do
+    echo "wg-quick down $i" >> extension.log
     wg-quick down $i
 done
 

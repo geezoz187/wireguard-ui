@@ -13,3 +13,19 @@
     color: deepskyblue;
 }
 
+.extension-wg-interface-text {
+    font-weight: 700;
+}
+
+.extension-wg-interface-text-none {
+    font-weight: 700;
+    color: red
+}
+
+.extension-popup-menu-item-red {
+    color: red;
+}
+
+.extension-popup-menu-item-red:hover {
+    color: rgb(61, 0, 0);
+}
