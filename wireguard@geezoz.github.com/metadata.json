@@ -1,9 +1,0 @@
-{
-  "name": "WireguardUI",
-  "description": "Windows like wireguard UI",
-  "uuid": "wireguard@geezoz.github.com",
-  "version": 1,
-  "shell-version": [
-    "3.36"
-  ]
-}

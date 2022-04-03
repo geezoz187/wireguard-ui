@@ -1,0 +1,10 @@
+{
+  "name": "WireguardUI",
+  "description": "A trayicon with preferences for managing your local a Wireguard VPN client",
+  "uuid": "wireguard@geezoz187.github.com",
+  "version": 1,
+  "url": "https://github.com/geezoz187/wireguard-ui",
+  "shell-version": [
+    "3.36", "3.38", "40"
+  ]
+}

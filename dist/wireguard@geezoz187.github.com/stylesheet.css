@@ -1,0 +1,15 @@
+/* Add your custom extension styling here */
+/* From: https://github.com/tuberry/extension-list */
+
+.extension-list-label-error {
+    color: red;
+}
+
+.extension-list-prefs-button {
+    padding: 0 5px;
+}
+
+.extension-list-button:hover {
+    color: deepskyblue;
+}
+
