@@ -33,12 +33,12 @@ function notifyError(txt) {
 function importConfigDialog() {
     logToFile("importConfigDialog has been called....");
     //`bash -c  &`
-    Gio.Subprocess.new(["/bin/bash", "-c", `${Me.dir.get_path()}/import-interface.sh ${Me.dir.get_path()}/copy-interface.sh`], Gio.SubprocessFlags.NONE);
+    Gio.Subprocess.new(["/bin/bash", "-c", `${Me.dir.get_path()}/scripts/import-interface.sh ${Me.dir.get_path()}/scripts/copy-interface.sh`], Gio.SubprocessFlags.NONE);
     logToFile("This script should hopefully have opened something...");
 }
 
 function checkDependencies() {
-    execShell(`bash ${Me.dir.get_path()}/check-dependencies.sh`);
+    execShell(`bash ${Me.dir.get_path()}/scripts/check-dependencies.sh`);
 }
 
 // From https://gjs.guide/guides/gio/subprocesses.html#synchronous-execution
@@ -99,7 +99,7 @@ function logToFile(txt) {
 }
 
 function updateInterfaces() {
-    execInterfaceScript(["/bin/bash", "-c", `${Me.dir.get_path()}/update-interface-list.sh ${Me.dir.get_path()}/interfaces`]);
+    execInterfaceScript(["/bin/bash", "-c", `${Me.dir.get_path()}/scripts/update-interface-list.sh ${Me.dir.get_path()}/interfaces`]);
     return execShell(`bash -c "cat ${Me.dir.get_path()}/interfaces | sed -e 's/.conf$//'"`); //
 }
 
@@ -136,12 +136,11 @@ function switchWireguardInterfaceTo(wgInterface) {
         }
     }
 
-    execInterfaceScript(["/bin/bash", "-c", `pkexec ${Me.dir.get_path()}/switch-wg-interface.sh ${command_chain}`]);
+    execInterfaceScript(["/bin/bash", "-c", `pkexec ${Me.dir.get_path()}/scripts/switch-wg-interface.sh ${command_chain}`]);
     notify(`Wireguard interface switched to '${wgInterface}'`);
 }
 
 function openEditorForInterface(wgInterface) {
-    logToFile(`Interface ${wgInterface} should now be opened in like gedit with pkexec`);
     execInterfaceScript(["/bin/bash", "-c", `gedit admin:///etc/wireguard/${wgInterface}.conf`]);
 }
 
@@ -183,7 +182,6 @@ function makeInterfaceMenuItem(interfaceName) {
  * @returns true if the given interface is active otherwise false
  */
 function checkIfInterfaceIsActive(interfaceName) {
-    //const res = execShell(`${Me.dir.get_path()}/is-interface-active.sh ${interfaceName}`);
     const res = execShell(`bash -c "ip addr | grep \\" ${interfaceName}:\\""`)
     if(!res || res === "") return;
     

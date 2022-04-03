@@ -3,10 +3,6 @@
 SELECTED_FILE=$(zenity --title "Select Wireguard Config File" --file-selection)
 
 if [ "$?" = 0 ]; then
-    # if [ -z "$SELECTED_FILE" ]; then
-    #     # This means
-    #     exit 0
-    # fi
     FILENAME=$(basename $SELECTED_FILE)
 
     pkexec $1 $SELECTED_FILE 

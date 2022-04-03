@@ -11,7 +11,7 @@ if [[ -d "$EXT_DIR/$EXTENSION_NAME" ]]; then
     rm -rf "$EXT_DIR/$EXTENSION_NAME"
 fi
 
-cp -r "./$EXTENSION_NAME" "$EXT_DIR/$EXTENSION_NAME"
+cp -r "./dist/$EXTENSION_NAME" "$EXT_DIR/$EXTENSION_NAME"
 
 bash "./$EXTENSION_NAME/check-dependencies.sh"
 
