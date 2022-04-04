@@ -21,6 +21,16 @@ const AppIcon = Gio.icon_new_for_string( Me.dir.get_path() + '/wireguard.svg' );
 const Application = new Gio.Application ({application_id: "wireguard.ui"});
 Application.register (null);
 
+const LICENSE = "GPLv2";
+const VERSION = "v0.1";
+const OWNER_NAME = "geezoz187";
+const REPO_LINK = "https://github.com/geezoz187/wireguard-ui";
+
+
+function showAbout() {
+    log("showAbout(); called.");
+    Gio.Subprocess.new(["/bin/bash", "-c", `zenity --info --no-wrap --text="<span size=\\"large\\">Wireguard Gnome UI</span>\\n\\nVersion: <b>${VERSION}</b>\\nLicense: <b>${LICENSE}</b>\\nRepository: <b>${REPO_LINK}</b>\\nCreated by: <b>${OWNER_NAME}</b>\\n\\n$(wg --version | cut -f1-2 -d'-')"`], Gio.SubprocessFlags.NONE);
+}
 
 function notify(txt) {
     Gio.Subprocess.new(["/bin/bash", "-c", `notify-send --icon="${Me.dir.get_path()}/wireguard.png" "Wireguard VPN" "${txt}"`], Gio.SubprocessFlags.NONE);
@@ -137,7 +147,6 @@ function switchWireguardInterfaceTo(wgInterface) {
         }
     }
 
-    logToFile(`switching interface with command chain ${command_chain}`);
     execInterfaceScript(["/bin/bash", "-c", `pkexec ${Me.dir.get_path()}/scripts/switch-wg-interface.sh ${command_chain}`]);
     if(wgInterface)
         notify(`Wireguard interface switched to '${wgInterface}'`);
@@ -286,7 +295,8 @@ var MainIndicator = class MainIndicator extends PanelMenu.Button {
 
         // - About Page
         addButtonItem('dialog-question-symbolic', () => { 
-
+            showAbout();
+            logToFile("showing about?");
         });
 
         
@@ -295,17 +305,17 @@ var MainIndicator = class MainIndicator extends PanelMenu.Button {
     }
 
     _buildMenu() {
-        var interfaces = updateInterfaces();
-        var interfaceArray = interfaces.split("\n");
+        let interfaces = updateInterfaces();
+        let interfaceArray = interfaces.split("\n");
+        interfaceArray.push(null);
+
 
         this.menu.addMenuItem(this._buildMenuStatusbar());
 
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-        interfaceArray.push(null);
-
         // Adding out wireguard interfaces as menu items
-        for(var inter of interfaceArray) {
+        for(let inter of interfaceArray) {
             if(inter === null) {
                 interfaceList[inter] = false;
                 this.menu.addMenuItem(makeNullInterfaceMenuItem());
@@ -331,7 +341,7 @@ var MainIndicator = class MainIndicator extends PanelMenu.Button {
     _init() {
         super._init(0.0, `${Me.metadata.name} Indicator`, false);
 
-        var icon = new St.Icon({
+        let icon = new St.Icon({
             gicon: AppIcon,
             style_class: 'system-status-icon'
         });
@@ -370,10 +380,13 @@ var MainIndicator = class MainIndicator extends PanelMenu.Button {
     // Disables wireguard interfaces entirely
     shutdownAllInterfaces() {
         switchWireguardInterfaceTo(null);
+
         for(let inter of Object.keys(interfaceList)) {
             interfaceList[inter] = false;
         }
+
         notify(`Disabling VPN`);
+
         this.menu.removeAll();
         this._buildMenu();
     }
